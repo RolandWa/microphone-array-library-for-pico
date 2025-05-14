@@ -61,8 +61,10 @@ make
 ## Acknowledgements
 
 To create this project, following references were used:
- * The [TinyUSB](https://github.com/hathach/tinyusb) library is used in the `usb_microphone_array` and `usb_microphone_array_led` examples.
+ * The [TinyUSB](https://github.com/hathach/tinyusb) library is used in the `usb_microphone_array` examples.
  * Machine I2S  https://github.com/sfera-labs/arduino-pico-i2s-audio
- * SK9822 LED https://github.com/raspberrypi/pico-examples/tree/master/pio/ws2812
- * Microphone library for pico https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico.git 
+ * Microphone library for pico https://github.com/ArmDeveloperEcosystem/microphone-library-for-pico.git
+ * PDM Microphones and Sigma-Delta A/D Conversion https://tomverbeure.github.io/2020/10/04/PDM-Microphones-and-Sigma-Delta-Conversion.html
+ * DIY Acoustic Camera using UMA-16 https://navat.substack.com/p/diy-acoustic-camera-using-uma-16
+ * Acoular – Acoustic testing and source mapping software https://www.acoular.org/
 ---
