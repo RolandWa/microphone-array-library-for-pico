@@ -1,6 +1,6 @@
 # microphone-array-library-for-pico
 
-Raspberry pi pico library for 6+1 microphone array connection.
+Raspberry pi pico library for 16+1 microphone array connection.
 
 Capture audio from a microphone array on your [Raspberry Pi Pico](https://www.raspberrypi.org/products/raspberry-pi-pico/) or any [RP2040](https://www.raspberrypi.org/products/rp2040/) based board. 🎤
 
@@ -10,7 +10,8 @@ Capture audio from a microphone array on your [Raspberry Pi Pico](https://www.ra
  * RP2040 board
    * [Raspberry Pi Pico](https://www.raspberrypi.org/products/raspberry-pi-pico/)
  * Microphone array
-   * [6+1 Microphone Array] (https://www.dfrobot.com/product-1976.html)
+   * [16 +1 Microphone Array] (https://www.digikey.pl/pl/products/detail/3s-solid-state-system/3SM222FMB1VA/25559041?_gl)
+     
 
 ### Default Pinout
 
@@ -25,7 +26,7 @@ Capture audio from a microphone array on your [Raspberry Pi Pico](https://www.ra
 | LED_CK | 15 | LED_PIN_CLK |
 | LED_DA | 14 | LED_PIN_DIN |
 
-VIN of the microphobe should be connected to the 5V of the power supply.
+VIN of the microphobe should be connected to the 3.3V of the power supply.
 GND of the microphobe should be connected to the GND of the power supply and Raspberry Pi Pico.
 Since the library is based on pio functionality, different ports on raspberry pi microcontroller can be used.
 
@@ -38,7 +39,7 @@ See [examples](examples/) folder.
 ## Cloning
 
 ```sh
-git clone https://github.com/denisgav/microphone-array-library-for-pico.git
+git clone https://github.com/RolandWa/microphone-array-library-for-pico.git
 ```
 
 ## Building
