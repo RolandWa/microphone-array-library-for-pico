@@ -94,50 +94,59 @@ STATIC uint32_t fill_appbuf_from_ringbuf(microphone_array_i2s_obj_t *self, mp_bu
     uint8_t appbuf_sample_size_in_bytes = (self->bits == 16? 2 : 4) * 2;
     uint32_t num_bytes_needed_from_ringbuf = appbuf->len * (I2S_RX_FRAME_SIZE_IN_BYTES / appbuf_sample_size_in_bytes);
     uint8_t discard_byte;
-    while (num_bytes_needed_from_ringbuf) {
-
-        uint8_t f_index = get_frame_mapping_index(self->bits);
-
-        for (uint8_t i = 0; i < I2S_RX_FRAME_SIZE_IN_BYTES; i++) {
-            int8_t r_to_a_mapping = i2s_frame_map[f_index][i];
-            if (r_to_a_mapping != -1) {
-                if (self->io_mode == BLOCKING) {
-                    // poll the ringbuf until a sample becomes available,  copy into appbuf using the mapping transform
-                    while (ringbuf_pop(&self->ring_buffer, app_p + r_to_a_mapping) == false) {
-                        ;
-                    }
-                    num_bytes_copied_to_appbuf++;
-                } else if (self->io_mode == UASYNCIO) {
-                    if (ringbuf_pop(&self->ring_buffer, app_p + r_to_a_mapping) == false) {
-                        // ring buffer is empty, exit
-                        goto exit;
-                    } else {
-                        num_bytes_copied_to_appbuf++;
-                    }
-                } else {
-                    return 0;  // should never get here (non-blocking mode does not use this function)
-                }
-            } else { // r_a_mapping == -1
-                // discard unused byte from ring buffer
-                if (self->io_mode == BLOCKING) {
-                    // poll the ringbuf until a sample becomes available
-                    while (ringbuf_pop(&self->ring_buffer, &discard_byte) == false) {
-                        ;
-                    }
-                } else if (self->io_mode == UASYNCIO) {
-                    if (ringbuf_pop(&self->ring_buffer, &discard_byte) == false) {
-                        // ring buffer is empty, exit
-                        goto exit;
-                    }
-                } else {
-                    return 0;  // should never get here (non-blocking mode does not use this function)
-                }
-            }
-            num_bytes_needed_from_ringbuf--;
+    // poll the ringbuf until a sample becomes available,  copy into appbuf using the mapping transform
+    int a_index = 0;
+    while (a_index < num_bytes_needed_from_ringbuf) {
+        while (ringbuf_pop(&self->ring_buffer, app_p+a_index) == false) {
+            ;
         }
-        app_p += appbuf_sample_size_in_bytes;
+        a_index++;
+        num_bytes_copied_to_appbuf++;
     }
-exit:
+//     while (num_bytes_needed_from_ringbuf) {
+
+//         uint8_t f_index = get_frame_mapping_index(self->bits);
+
+//         for (uint8_t i = 0; i < I2S_RX_FRAME_SIZE_IN_BYTES; i++) {
+//             int8_t r_to_a_mapping = i2s_frame_map[f_index][i];
+//             if (r_to_a_mapping != -1) {
+//                 if (self->io_mode == BLOCKING) {
+//                     // poll the ringbuf until a sample becomes available,  copy into appbuf using the mapping transform
+//                     while (ringbuf_pop(&self->ring_buffer, app_p + r_to_a_mapping) == false) {
+//                         ;
+//                     }
+//                     num_bytes_copied_to_appbuf++;
+//                 } else if (self->io_mode == UASYNCIO) {
+//                     if (ringbuf_pop(&self->ring_buffer, app_p + r_to_a_mapping) == false) {
+//                         // ring buffer is empty, exit
+//                         goto exit;
+//                     } else {
+//                         num_bytes_copied_to_appbuf++;
+//                     }
+//                 } else {
+//                     return 0;  // should never get here (non-blocking mode does not use this function)
+//                 }
+//             } else { // r_a_mapping == -1
+//                 // discard unused byte from ring buffer
+//                 if (self->io_mode == BLOCKING) {
+//                     // poll the ringbuf until a sample becomes available
+//                     while (ringbuf_pop(&self->ring_buffer, &discard_byte) == false) {
+//                         ;
+//                     }
+//                 } else if (self->io_mode == UASYNCIO) {
+//                     if (ringbuf_pop(&self->ring_buffer, &discard_byte) == false) {
+//                         // ring buffer is empty, exit
+//                         goto exit;
+//                     }
+//                 } else {
+//                     return 0;  // should never get here (non-blocking mode does not use this function)
+//                 }
+//             }
+//             num_bytes_needed_from_ringbuf--;
+//         }
+//         app_p += appbuf_sample_size_in_bytes;
+//     }
+// exit:
     return num_bytes_copied_to_appbuf;
 }
 
@@ -279,9 +288,9 @@ STATIC int pio_configure(microphone_array_i2s_obj_t *self) {
 
     
     sm_config_set_in_pins(&config, self->sd_base+0);
-    // sm_config_set_in_pins(&config, self->sd_base+1);
-    // sm_config_set_in_pins(&config, self->sd_base+2);
-    // sm_config_set_in_pins(&config, self->sd_base+3);
+    //sm_config_set_in_pins(&config, self->sd_base+1);
+    //sm_config_set_in_pins(&config, self->sd_base+2);
+    //sm_config_set_in_pins(&config, self->sd_base+3);
     sm_config_set_in_shift(&config, false, true, dma_get_bits(self->bits));
     sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX);  // double RX FIFO size
     
@@ -409,43 +418,27 @@ STATIC void dma_deinit(microphone_array_i2s_obj_t *self) {
 }
 
 STATIC void dma_irq_handler(uint8_t irq_index) {
+    int dma_channel = dma_map_irq_to_channel(irq_index);
+    if (dma_channel == -1) {
+        // This should never happen
+        return;
+    }
+
     microphone_array_i2s_obj_t *self = microphone_array_i2s_obj[irq_index];
     if (self == NULL) {
         // This should never happen
         return;
     }
-    for (uint8_t ch = 0; ch < I2S_NUM_DMA_CHANNELS; ch++) {
-        int dma_channel = self->dma_channel[ch];
-        if ((dma_irqn_get_channel_status(irq_index, dma_channel))) {
-            uint8_t *dma_buffer = dma_get_buffer(self, dma_channel);
-            if (dma_buffer == NULL) {
-                 // This should never happen
-                 return;
-            }
 
-            empty_dma(self, dma_buffer);
-            dma_irqn_acknowledge_channel(irq_index, dma_channel);
-            dma_channel_set_write_addr(dma_channel, dma_buffer, false);
-        }
+    uint8_t *dma_buffer = dma_get_buffer(self, dma_channel);
+    if (dma_buffer == NULL) {
+        // This should never happen
+        return;
     }
 
-    // int dma_channel = dma_map_irq_to_channel(irq_index);
-    // if (dma_channel == -1) {
-    //     // This should never happen
-    //     return;
-    // }
-
-    
-
-    // uint8_t *dma_buffer = dma_get_buffer(self, dma_channel);
-    // if (dma_buffer == NULL) {
-    //     // This should never happen
-    //     return;
-    // }
-
-    // empty_dma(self, dma_buffer);
-    // dma_irqn_acknowledge_channel(irq_index, dma_channel);
-    // dma_channel_set_write_addr(dma_channel, dma_buffer, false);
+    empty_dma(self, dma_buffer);
+    dma_irqn_acknowledge_channel(irq_index, dma_channel);
+    dma_channel_set_write_addr(dma_channel, dma_buffer, false);
 }
 
 STATIC void dma_irq0_handler(void) {
@@ -585,7 +578,7 @@ i2s_audio_sample decode_sample(i2s_audio_sample* sample_ptr_in)
 
     for(int sample_idx = 0; sample_idx < 4; sample_idx++)
     {
-        for(int slice_idx=32/4-1; slice_idx >=0; slice_idx--){ // Audio sample size in 24 bits
+        for(int slice_idx=7; slice_idx >=0; slice_idx--){
             uint32_t bit_slice_4 = (sample_ptr_in->sample_l[sample_idx]>>(slice_idx*4));
             bool bit_sample_0 = (bit_slice_4 & 0x1) != 0x0;
             bool bit_sample_1 = (bit_slice_4 & 0x2) != 0x0;
@@ -601,7 +594,7 @@ i2s_audio_sample decode_sample(i2s_audio_sample* sample_ptr_in)
 
     for(int sample_idx = 0; sample_idx < 4; sample_idx++)
     {
-        for(int slice_idx=32/4-1; slice_idx >=0; slice_idx--){ // Audio sample size in 24 bits
+        for(int slice_idx=7; slice_idx >=0; slice_idx--){
             uint32_t bit_slice_4 = (sample_ptr_in->sample_r[sample_idx]>>(slice_idx*4));
             bool bit_sample_0 = (bit_slice_4 & 0x1) != 0x0;
             bool bit_sample_1 = (bit_slice_4 & 0x2) != 0x0;
@@ -614,5 +607,14 @@ i2s_audio_sample decode_sample(i2s_audio_sample* sample_ptr_in)
             res.sample_r[3] = (res.sample_r[3]<<1) | bit_sample_3;
         }
     }
+
+    // printf("DBG IN %.8x %.8x %.8x %.8x %.8x %.8x %.8x %.8x\n",
+    //             sample_ptr_in->sample_l[0], sample_ptr_in->sample_l[1], sample_ptr_in->sample_l[2], sample_ptr_in->sample_l[3],
+    //             sample_ptr_in->sample_r[0], sample_ptr_in->sample_r[1], sample_ptr_in->sample_r[2], sample_ptr_in->sample_r[3]);
+
+    // printf("DBG OUT %.8x %.8x %.8x %.8x %.8x %.8x %.8x %.8x\n",
+    //             res.sample_l[0], res.sample_l[1], res.sample_l[2], res.sample_l[3],
+    //             res.sample_r[0], res.sample_r[1], res.sample_r[2], res.sample_r[3]);
+
     return res;
 }

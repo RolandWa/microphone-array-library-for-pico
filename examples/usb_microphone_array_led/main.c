@@ -39,7 +39,7 @@
 #include "main.h"
 
 #include "pico/microphone_array_i2s.h"
-#include "pico/volume_ctrl.hpp"
+#include "pico/volume_ctrl.h"
 #include "pico/sk9822.h"
 #include "pico/sk9822_led_animation.h"
 
@@ -184,16 +184,16 @@ void on_usb_microphone_tx_post_load(uint8_t rhport, uint16_t n_bytes_copied, uin
       for(uint32_t i = 0; i < num_of_frames_read; i++){
         i2s_audio_sample sample = decode_sample(&(sample_ptr[i]));
         #if CFG_TUD_AUDIO_ENABLE_ENCODING
-          i2s_dummy_buffer[0][i*2+0] = i2s_to_usb_sample_convert(((sample.sample_l[2]+sample.sample_r[2])/2), volume_db_2); // TODO: check this value
-          i2s_dummy_buffer[0][i*2+1] = i2s_to_usb_sample_convert(sample.sample_r[3], volume_db_3); // TODO: check this value
+          i2s_dummy_buffer[0][i*2+0] = i2s_to_usb_sample_convert(sample.sample_r[3], volume_db_3); // TODO: check this value
+          i2s_dummy_buffer[0][i*2+1] = i2s_to_usb_sample_convert(sample.sample_r[2], volume_db_2); // TODO: check this value
 
-          i2s_dummy_buffer[1][i*2+0] = i2s_to_usb_sample_convert(((sample.sample_l[0]+sample.sample_r[0])/2), volume_db_0); // TODO: check this value
-          i2s_dummy_buffer[1][i*2+1] = i2s_to_usb_sample_convert(((sample.sample_l[1]+sample.sample_r[1])/2), volume_db_1); // TODO: check this value
+          i2s_dummy_buffer[1][i*2+0] = i2s_to_usb_sample_convert(sample.sample_r[1], volume_db_1); // TODO: check this value
+          i2s_dummy_buffer[1][i*2+1] = i2s_to_usb_sample_convert(sample.sample_r[0], volume_db_0); // TODO: check this value
         #else
-          i2s_dummy_buffer[i*4+0] = i2s_to_usb_sample_convert((sample.sample_l[0]), volume_db_0); // TODO: check this value
-          i2s_dummy_buffer[i*4+1] = i2s_to_usb_sample_convert((sample.sample_r[0]), volume_db_1); // TODO: check this value
-          i2s_dummy_buffer[i*4+2] = i2s_to_usb_sample_convert((sample.sample_l[1]), volume_db_2); // TODO: check this value
-          i2s_dummy_buffer[i*4+3] = i2s_to_usb_sample_convert((sample.sample_r[1]), volume_db_3); // TODO: check this value
+          i2s_dummy_buffer[i*4+0] = i2s_to_usb_sample_convert(sample.sample_r[3], volume_db_3); // TODO: check this value
+          i2s_dummy_buffer[i*4+1] = i2s_to_usb_sample_convert(sample.sample_r[2], volume_db_2); // TODO: check this value
+          i2s_dummy_buffer[i*4+2] = i2s_to_usb_sample_convert(sample.sample_r[1], volume_db_1); // TODO: check this value
+          i2s_dummy_buffer[i*4+3] = i2s_to_usb_sample_convert(sample.sample_r[0], volume_db_0); // TODO: check this value
         #endif
           if(( i==0 ) && ( led_animation.sample_valid_cntr < 75 ))
           {

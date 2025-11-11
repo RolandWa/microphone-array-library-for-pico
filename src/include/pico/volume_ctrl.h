@@ -1,9 +1,14 @@
 #pragma once 
 
+#include <stdio.h>
+#include <string.h>
+
+#include "pico/stdlib.h"
+
 #include "stdbool.h"
 
 // todo this seemed like aood guess, but is not correct
-uint16_t db_to_vol[91] = {
+static const uint16_t db_to_vol[91] = {
         0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0002, 0x0002,
         0x0002, 0x0002, 0x0003, 0x0003, 0x0004, 0x0004, 0x0005, 0x0005,
         0x0006, 0x0007, 0x0008, 0x0009, 0x000a, 0x000b, 0x000d, 0x000e,
@@ -20,23 +25,19 @@ uint16_t db_to_vol[91] = {
 
 // actually windows doesn't seem to like this in the middle, so set top range to 0db
 #define CENTER_VOLUME_INDEX 91
+#define ENC_NUM_OF_FP_BITS 8
 
-#define ENCODE_DB(x) ((uint16_t)(int16_t)((x)*256))
+#define ENCODE_DB(x) ((uint16_t)(int16_t)((x)<<ENC_NUM_OF_FP_BITS))
 
-#define MIN_VOLUME           ENCODE_DB(-CENTER_VOLUME_INDEX)
-#define DEFAULT_VOLUME       ENCODE_DB(0)
-#define MAX_VOLUME           ENCODE_DB(count_of(db_to_vol)-CENTER_VOLUME_INDEX)
-#define VOLUME_RESOLUTION    ENCODE_DB(1)
+#define DEFAULT_VOLUME        (0)
 
-uint16_t vol_to_db_convert(bool channel_mute, uint16_t channel_volume){
-	if(channel_mute)
-    	return 0;
+#define MIN_VOLUME_ENC        ENCODE_DB(-CENTER_VOLUME_INDEX)
+#define MAX_VOLUME_ENC        ENCODE_DB(count_of(db_to_vol)-CENTER_VOLUME_INDEX)
+#define VOLUME_RESOLUTION_ENC ENCODE_DB(1)
 
-    // todo interpolate
-  channel_volume += CENTER_VOLUME_INDEX * 256;
-  if (channel_volume < 0) channel_volume = 0;
-  if (channel_volume >= count_of(db_to_vol) * 256) channel_volume = count_of(db_to_vol) * 256 - 1;
-  uint16_t vol_mul = db_to_vol[((uint16_t)channel_volume) >> 8u];
+#define MIN_VOLUME        (-CENTER_VOLUME_INDEX)
+#define MAX_VOLUME        (count_of(db_to_vol)-CENTER_VOLUME_INDEX)
+#define VOLUME_RESOLUTION (1)
 
-  return vol_mul;
-}
+uint16_t vol_to_db_convert(bool channel_mute, uint16_t channel_volume);
+uint16_t vol_to_db_convert_enc(bool channel_mute, uint16_t channel_volume);
